@@ -1,0 +1,36 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Manage Budgets{% endblock %}
+
+{% block content %}
+    <h2>Manage Budgets</h2>
+    <a href="{% url 'tracker:budget_create' %}" style="margin-bottom: 20px; display: inline-block;">Create New Budget</a>
+
+    {% if budgets %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                <tr>
+                    <td>{{ budget.month|date:"Y-m" }}</td>
+                    <td>{{ budget.category }}</td>
+                    <td>${{ budget.amount|floatformat:2 }}</td>
+                    <td>
+                        <a href="{% url 'tracker:budget_edit' pk=budget.pk %}">Edit</a>
+                        <a href="{% url 'tracker:budget_delete' pk=budget.pk %}" style="margin-left: 10px; color: red;">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You haven't created any budgets yet.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+<!-- tracker/templates/tracker/financial_tips.html -->
+{% extends 'tracker/base.html' %}
+
+{% block title %}Financial Tips{% endblock %}
+
+{% block content %}
+    <h2>Financial Tips & Advice</h2>
+    <p>Here are some general tips to help you manage your finances better:</p>
+
+    {% if financial_tips %}
+        <ul>
+            {% for tip in financial_tips %}
+                <li>{{ tip }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No tips available at the moment.</p>
+    {% endif %}
+
+{% endblock %}

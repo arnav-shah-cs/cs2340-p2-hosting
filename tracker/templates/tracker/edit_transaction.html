@@ -1,0 +1,16 @@
+<!-- tracker/templates/tracker/edit_transaction.html -->
+{% extends 'tracker/base.html' %}
+
+{% block title %}Edit Transaction{% endblock %}
+
+{% block content %}
+    <h2>Edit Transaction</h2>
+    <p>Editing transaction from {{ transaction.date }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save Changes</button>
+        <a href="{% url 'tracker:dashboard' %}" style="margin-left: 10px;">Cancel</a>
+    </form>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}{{ action }} Budget{% endblock %}
+
+{% block content %}
+    <h2>{{ action }} Budget</h2>
+    {% if action == 'Edit' %}
+        <p>Editing budget for {{ budget.category }} ({{ budget.month|date:"Y-m" }})</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save Budget</button>
+        <a href="{% url 'tracker:budget_list' %}" style="margin-left: 10px;">Cancel</a>
+    </form>
+{% endblock %}

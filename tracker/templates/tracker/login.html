@@ -1,0 +1,15 @@
+<!-- tracker/templates/tracker/login.html -->
+{% extends 'tracker/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="next" value="{{ next }}"> <!-- For redirect after login -->
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="{% url 'tracker:register' %}">Register here</a>.</p>
+{% endblock %}

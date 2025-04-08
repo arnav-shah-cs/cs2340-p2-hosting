@@ -1,0 +1,101 @@
+<!-- tracker/templates/tracker/dashboard.html -->
+{% extends 'tracker/base.html' %}
+{% load static %} <!-- Optional: if using static files for CSS -->
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h2>Dashboard</h2>
+    <p>Welcome, {{ username }}!</p>
+
+    {# --- NEW: Budget Progress Section --- #}
+    <h3>Budget Progress for {{ current_month_str }}</h3>
+    {% if budget_progress %}
+        <style>
+            .progress-bar-container { width: 100%; background-color: #e9ecef; border-radius: .25rem; overflow: hidden; margin-top: 5px; margin-bottom: 10px; height: 20px; }
+            .progress-bar { background-color: #0d6efd; height: 100%; text-align: center; color: white; line-height: 20px; font-size: 12px; transition: width .6s ease; }
+            .progress-bar.over { background-color: #dc3545; } /* Red when over budget */
+            .budget-item { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px;}
+            .budget-item strong { display: block; margin-bottom: 5px; font-size: 1.1em; }
+            .budget-details span { margin-right: 15px; }
+            .budget-details .spent { font-weight: bold; }
+            .budget-details .over-text { color: #dc3545; font-weight: bold; }
+            .no-budget-text { font-style: italic; color: #6c757d; font-size: 0.9em;}
+        </style>
+
+        <div>
+            {% for item in budget_progress %}
+                <div class="budget-item">
+                    <strong>{{ item.category }}</strong>
+                    <div class="budget-details">
+                        <span class="spent">Spent: ${{ item.spent_amount|floatformat:2 }}</span>
+                        {% if item.has_budget %}
+                            <span>Budget: ${{ item.budget_amount|floatformat:2 }}</span>
+                            {% if item.over_budget %}
+                                <span class="over-text">Remaining: -${{ item.remaining|floatformat:2|slice:"1:" }} (Over Budget)</span>
+                            {% else %}
+                                <span>Remaining: ${{ item.remaining|floatformat:2 }}</span>
+                            {% endif %}
+                            <div class="progress-bar-container">
+                                <div class="progress-bar {% if item.over_budget %}over{% endif %}" role="progressbar" style="width: {{ item.percentage }}%;" aria-valuenow="{{ item.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.percentage }}%
+                                </div>
+                            </div>
+                        {% else %}
+                            <span class="no-budget-text">(No budget set for this category)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p><a href="{% url 'tracker:budget_list' %}">Manage Your Budgets</a></p>
+
+    {% else %}
+        <p>No spending or budgets found for {{ current_month_str }}.
+           <a href="{% url 'tracker:budget_create' %}">Create your first budget!</a>
+        </p>
+    {% endif %}
+    {# --- End Budget Progress Section --- #}
+
+
+    <hr style="margin: 30px 0;">
+
+    {# --- Keep Existing Transactions Table (optional) --- #}
+    <h3>Recent Transactions</h3>
+    {% if transactions %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions|slice:":10" %} {# Show maybe last 10? #}
+                <tr>
+                    <td>{{ t.date }}</td>
+                    <td>{{ t.type }}</td>
+                    <td>{{ t.category }}</td>
+                    <td>{{ t.description }}</td>
+                    <td>${{ t.amount|floatformat:2 }}</td>
+                    <td>
+                        <a href="{% url 'tracker:edit_transaction' pk=t.pk %}">Edit</a>
+                        <a href="{% url 'tracker:delete_transaction' pk=t.pk %}" style="margin-left: 10px; color: red;">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if transactions|length > 10 %}
+        <p>...</p> {# Indicate more exist #}
+        {% endif %}
+    {% else %}
+        <p>You haven't added any transactions yet.</p>
+    {% endif %}
+    <p style="margin-top: 20px;"><a href="{% url 'tracker:add_transaction' %}">Add a New Transaction</a></p>
+
+{% endblock %}

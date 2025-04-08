@@ -1,0 +1,18 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Confirm Delete Budget{% endblock %}
+
+{% block content %}
+    <h2>Confirm Budget Deletion</h2>
+    <p>Are you sure you want to delete the budget for
+       <strong>{{ budget.category }}</strong>
+       in <strong>{{ budget.month|date:"Y-m" }}</strong>
+       with amount <strong>${{ budget.amount|floatformat:2 }}</strong>?
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" style="background-color: #dc3545; color: white;">Confirm Delete</button>
+        <a href="{% url 'tracker:budget_list' %}" style="margin-left: 10px;">Cancel</a>
+    </form>
+{% endblock %}
