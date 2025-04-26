@@ -5,21 +5,172 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Finance Tracker{% endblock %}</title>
-    <!-- Add CSS links here (e.g., Bootstrap or custom CSS) -->
     <style>
-        body { font-family: sans-serif; margin: 20px; }
-        nav a { margin-right: 15px; text-decoration: none; }
-        .messages li { list-style: none; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
-        .messages .success { background-color: #d4edda; color: #155724; }
-        .messages .info { background-color: #d1ecf1; color: #0c5460; }
-        .messages .error { background-color: #f8d7da; color: #721c24; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        form p { margin-bottom: 15px; }
-        form label { display: block; margin-bottom: 5px; }
-        form input, form select { width: 100%; padding: 8px; box-sizing: border-box; }
-        button { padding: 10px 15px; cursor: pointer; }
+        /* Apple system fonts */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif;
+            color: #1d1d1f;
+        }
+
+        nav {
+            background: #ffffff;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 0;
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #1d1d1f;
+            padding: 5px 10px;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #0071e3;
+        }
+
+        nav a::after {
+            content: "";
+            position: absolute;
+            width: 0%;
+            height: 2px;
+            bottom: -5px;
+            left: 50%;
+            background-color: #0071e3;
+            transition: width 0.3s ease, left 0.3s ease;
+        }
+
+        nav a:hover::after {
+            width: 100%;
+            left: 0;
+        }
+
+        .messages {
+            max-width: 700px;
+            margin: 20px auto;
+            list-style: none;
+            padding: 0;
+        }
+
+        .messages li {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .messages .success {
+            background-color: #e6f7ec;
+            color: #22863a;
+        }
+
+        .messages .info {
+            background-color: #e6f4f9;
+            color: #0366d6;
+        }
+
+        .messages .error {
+            background-color: #fce8e6;
+            color: #d73a49;
+        }
+
+        main {
+            padding: 40px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        th, td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: left;
+            font-size: 15px;
+        }
+
+        th {
+            background-color: #fafafa;
+            font-weight: 600;
+        }
+
+        form p {
+            margin-bottom: 20px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        form input, form select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        form input:focus, form select:focus {
+            border-color: #0071e3;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        button {
+            padding: 14px 25px;
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        button:hover {
+            background-color: #005bb5;
+            transform: scale(0.98);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 20px 0;
+            font-size: 14px;
+            color: #6e6e73;
+        }
+
+        footer hr {
+            margin-top: 40px;
+            border: none;
+            height: 1px;
+            background: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -27,28 +178,27 @@
         <a href="{% url 'tracker:dashboard' %}">Dashboard</a>
         {% if user.is_authenticated %}
             <a href="{% url 'tracker:add_transaction' %}">Add Transaction</a>
-             <a href="{% url 'tracker:budget_list' %}">Manage Budgets</a>
+            <a href="{% url 'tracker:budget_list' %}">Manage Budgets</a>
             <a href="{% url 'tracker:financial_tips' %}">Financial Tips</a>
-            <span>Hello, {{ user.username }}!</span>
+            <span style="color: #6e6e73;">Hello, {{ user.username }}!</span>
             <a href="{% url 'tracker:logout' %}">Logout</a>
         {% else %}
             <a href="{% url 'tracker:login' %}">Login</a>
             <a href="{% url 'tracker:register' %}">Register</a>
         {% endif %}
     </nav>
-    <hr>
 
     {% if messages %}
     <ul class="messages">
         {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
         {% endfor %}
     </ul>
     {% endif %}
 
     <main>
         {% block content %}
-        <!-- Page specific content goes here -->
+        <!-- Page-specific content goes here -->
         {% endblock %}
     </main>
 

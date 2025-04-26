@@ -4,12 +4,30 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-    <h2>Login</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="hidden" name="next" value="{{ next }}"> <!-- For redirect after login -->
-        <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <a href="{% url 'tracker:register' %}">Register here</a>.</p>
+<div style="background-color: #f5f5f7; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: #ffffff; max-width: 400px; width: 100%; padding: 50px 40px; border-radius: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
+        <h2 style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: 600; margin-bottom: 30px;">Welcome Back</h2>
+        <form method="post" style="display: flex; flex-direction: column; gap: 20px;">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" style="padding: 14px 0; background-color: #0071e3; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.25s ease;">
+                Sign In
+            </button>
+        </form>
+        <p style="margin-top: 25px; text-align: center; font-size: 14px; color: #6e6e73;">
+            Don't have an account? <a href="{% url 'tracker:register' %}" style="color: #0071e3; text-decoration: none; font-weight: 500;">Register here</a>.
+        </p>
+    </div>
+</div>
+
+<style>
+    button:hover {
+        background-color: #005bb5;
+        transform: scale(0.98);
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
 {% endblock %}
