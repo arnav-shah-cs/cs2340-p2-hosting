@@ -566,18 +566,16 @@ from django.conf import settings
 from django.shortcuts import render
 
 def stock_market_overview(request):
-    indices = ["SPY", "QQQ", "DIA"]
+    indices = ["SPY", "QQQ", "DIA", "IWM", "VTI", "ACWI", "VOO", "IVV", "AAPL", "GOOGL", "MSFT",]
     overview_data = []
     api_key = settings.ALPHA_VANTAGE_API_KEY
     base_url = "https://www.alphavantage.co/query"
 
     for ticker in indices:
         url = f"{base_url}?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={api_key}"
-        print(f"--- Requesting Alpha Vantage URL: {url}")
+        #print(f"--- Requesting Alpha Vantage URL: {url}")
         try:
             response = requests.get(url, timeout=10)
-            print(f"--- Alpha Vantage Response Status ({ticker}): {response.status_code}")
-
             if response.status_code == 200:
                 data = response.json()
                 if 'Time Series (Daily)' in data:
@@ -592,12 +590,15 @@ def stock_market_overview(request):
                         'close': daily_data['4. close'],
                     })
                 else:
-                    print(f"--- Warning: No time series data available for {ticker}")
+                    return
+                    #print(f"--- Warning: No time series data available for {ticker}")
             else:
-                print(f"--- Error fetching data for {ticker}: Status {response.status_code}")
+                return
+                #print(f"--- Error fetching data for {ticker}: Status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
-            print(f"--- Network error fetching data for {ticker}: {e}")
+            return
+            # print(f"--- Network error fetching data for {ticker}: {e}")
 
     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
 
