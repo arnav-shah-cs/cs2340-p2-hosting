@@ -1,4 +1,4 @@
-{% extends 'tracker/base.html' %} {# Or your base template #}
+{% extends 'tracker/base.html' %} {# #}
 
 {% block title %}Add Goal{% endblock %}
 
@@ -15,7 +15,7 @@
 
 <form method="post" action="{% url 'tracker:add_goal' %}">
     {% csrf_token %}
-    {{ form.as_p }} {# Renders form fields as paragraphs #}
+    {{ form.as_p }} {}
     <button type="submit" class="btn btn-success">Create Goal</button>
     <a href="{% url 'tracker:dashboard' %}" class="btn btn-secondary">Cancel</a>
 </form>

@@ -281,30 +281,27 @@ def check_and_send_budget_alerts(user):
                 )
 
 
-@login_required
-def dashboard_view(request):
-    print("dashboard hello")
-    transactions = Transaction.objects.filter(user=request.user)
-    goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
-
-    today = timezone.now().date()
-    upcoming_recurring_expenses = Transaction.objects.filter(
-        user=request.user,
-        #type='Expense',
-        is_recurring=True,
-        recurring_due_date__gte=today
-    ).order_by('recurring_due_date')
-
-    context = {
-        'transactions': transactions,
-        'username': request.user.username,
-        'goals': goals_queryset,
-        'upcoming_recurring_expenses': upcoming_recurring_expenses,
-    }
-    print(f"Upcoming recurring expenses: {upcoming_recurring_expenses.count()}")
-    for exp in upcoming_recurring_expenses:
-        print(f"{exp.description} due on {exp.recurring_due_date}")
-    return render(request, 'tracker/dashboard.html', context)
+# @login_required
+# def dashboard_view(request):
+#     print("dashboard hello")
+#     transactions = Transaction.objects.filter(user=request.user)
+#     goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
+#
+#     today = timezone.now().date()
+#     upcoming_recurring_expenses = Transaction.objects.filter(
+#         user=request.user,
+#         #type='Expense',
+#         is_recurring=True,
+#         recurring_due_date__gte=today
+#     ).order_by('recurring_due_date')
+#
+#     context = {
+#         'transactions': transactions,
+#         'username': request.user.username,
+#         'goals': goals_queryset,
+#         'upcoming_recurring_expenses': upcoming_recurring_expenses,
+#     }
+#     return render(request, 'tracker/dashboard.html', context)
 
 
 
@@ -337,8 +334,7 @@ def add_contribution(request, goal_id):
             goal.current_amount += amount
             goal.save()
             messages.success(request, f"Successfully added ${amount} to '{goal.name}'!")
-             # --- Redirect to YOUR dashboard view ---
-            return redirect('tracker:dashboard') # Make sure 'dashboard' URL name points to dashboard_view
+            return redirect('tracker:dashboard')
         else:
             messages.error(request, "Please correct the errors below.")
     else:
@@ -477,7 +473,9 @@ def budget_delete_view(request, pk):
 
 @login_required
 def dashboard_view(request):
+    print("DASHBOARD HELLO HELLO")
     transactions = Transaction.objects.filter(user=request.user)
+    goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
 
     today = timezone.now().date()
     start_of_current_month = today.replace(day=1)
@@ -495,6 +493,12 @@ def dashboard_view(request):
         date__gte=start_of_current_month,
         date__lt=start_of_next_month
     )
+    upcoming_recurring_expenses = Transaction.objects.filter(
+        user=request.user,
+        # type='Expense',
+        is_recurring=True,
+        recurring_due_date__gte=today
+    ).order_by('recurring_due_date')
 
     spending_map = defaultdict(Decimal)
     for expense in current_expenses:
@@ -524,13 +528,15 @@ def dashboard_view(request):
         'transactions': transactions,
         'username': request.user.username,
         'budget_progress': budget_progress,
+        'goals': goals_queryset,
+        'upcoming_recurring_expenses': upcoming_recurring_expenses,
         'current_month_str': start_of_current_month.strftime('%B %Y')
     }
     return render(request, 'tracker/dashboard.html', context)
 
 
 def stock_market_overview(request):
-    indices = ["SPY", "QQQ", "DIA"] # Key ETFs for overview
+    indices = ["SPY", "QQQ", "DIA"]
     overview_data = []
     api_key = settings.POLYGON_API_KEY
     base_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/"
@@ -541,22 +547,17 @@ def stock_market_overview(request):
         try:
             response = requests.get(url, timeout=10)
             print(f"--- Snapshot Response Status ({ticker}): {response.status_code}")
-            # Add response text printing for debugging if needed
-            # print(f"--- Snapshot Response Text ({ticker}): {response.text[:200]}")
 
             if response.status_code == 200:
                 data = response.json()
-                if data.get('ticker'): # Basic check for valid response structure
-                    overview_data.append(data['ticker']) # Add the 'ticker' part of the snapshot
+                if data.get('ticker'):
+                    overview_data.append(data['ticker'])
                 else:
                     print(f"--- Warning: Unexpected snapshot structure for {ticker}")
             else:
                 print(f"--- Error fetching snapshot for {ticker}: Status {response.status_code}")
-                # Optionally add placeholder error data for the template
 
         except requests.exceptions.RequestException as e:
             print(f"--- Network error fetching snapshot for {ticker}: {e}")
-            # Optionally add placeholder error data
 
     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
-    # Adjust your template 'stock_market.html' to display snapshot data
