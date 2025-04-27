@@ -62,13 +62,14 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     transactions = Transaction.objects.filter(user=request.user)
-    goals = Goal.objects.filter(user=request.user).order_by('created_at')
+    goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
     context = {
         'transactions': transactions,
         'username': request.user.username,
-        'goals': goals,
+        'goals': goals_queryset,
     }
     return render(request, 'tracker/dashboard.html', context)
+
 
 
 @login_required
@@ -81,8 +82,7 @@ def add_goal(request):
             goal.current_amount = Decimal('0.00')
             goal.save()
             messages.success(request, f"Goal '{goal.name}' created successfully!")
-            # --- Redirect to YOUR dashboard view ---
-            return redirect('tracker:dashboard') # Make sure 'dashboard' URL name points to dashboard_view
+            return redirect('tracker:dashboard')
         else:
              messages.error(request, "Please correct the errors below.")
     else:
