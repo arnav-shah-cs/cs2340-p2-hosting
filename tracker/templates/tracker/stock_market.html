@@ -5,25 +5,27 @@
 
 {% block content %}
     <h2>Stock Market Overview</h2>
-    {% if stocks %}
+    {% if overview_data %}
         <table>
             <thead>
                 <tr>
                     <th>Symbol</th>
-                    <th>Current Price</th>
+                    <th>Date</th>
+                    <th>Open</th>
                     <th>High</th>
                     <th>Low</th>
-                    <th>Volume</th>
+                    <th>Close</th>
                 </tr>
             </thead>
             <tbody>
-                {% for stock in stocks|slice:":20" %}
+                {% for stock in overview_data %}
                     <tr>
-                        <td>{{ stock.T }}</td>
-                        <td>${{ stock.c }}</td>
-                        <td>${{ stock.h }}</td>
-                        <td>${{ stock.l }}</td>
-                        <td>{{ stock.v|add_comma }}</td>
+                        <td>{{ stock.ticker }}</td>
+                        <td>{{ stock.date }}</td>
+                        <td>${{ stock.open|floatformat:2 }}</td>
+                        <td>${{ stock.high|floatformat:2 }}</td>
+                        <td>${{ stock.low|floatformat:2 }}</td>
+                        <td>${{ stock.close|floatformat:2 }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

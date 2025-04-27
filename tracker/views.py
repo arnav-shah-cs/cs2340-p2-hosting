@@ -473,7 +473,6 @@ def budget_delete_view(request, pk):
 
 @login_required
 def dashboard_view(request):
-    print("DASHBOARD HELLO HELLO")
     transactions = Transaction.objects.filter(user=request.user)
     goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
 
@@ -535,29 +534,70 @@ def dashboard_view(request):
     return render(request, 'tracker/dashboard.html', context)
 
 
+# def stock_market_overview(request):
+#     indices = ["SPY", "QQQ", "DIA"]
+#     overview_data = []
+#     api_key = settings.POLYGON_API_KEY
+#     base_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/"
+#
+#     for ticker in indices:
+#         url = f"{base_url}{ticker}?apiKey={api_key}"
+#         print(f"--- Requesting Snapshot URL: {url}")
+#         try:
+#             response = requests.get(url, timeout=10)
+#             print(f"--- Snapshot Response Status ({ticker}): {response.status_code}")
+#
+#             if response.status_code == 200:
+#                 data = response.json()
+#                 if data.get('ticker'):
+#                     overview_data.append(data['ticker'])
+#                 else:
+#                     print(f"--- Warning: Unexpected snapshot structure for {ticker}")
+#             else:
+#                 print(f"--- Error fetching snapshot for {ticker}: Status {response.status_code}")
+#
+#         except requests.exceptions.RequestException as e:
+#             print(f"--- Network error fetching snapshot for {ticker}: {e}")
+#
+#     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
+
+import requests
+from django.conf import settings
+from django.shortcuts import render
+
 def stock_market_overview(request):
     indices = ["SPY", "QQQ", "DIA"]
     overview_data = []
-    api_key = settings.POLYGON_API_KEY
-    base_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/"
+    api_key = settings.ALPHA_VANTAGE_API_KEY
+    base_url = "https://www.alphavantage.co/query"
 
     for ticker in indices:
-        url = f"{base_url}{ticker}?apiKey={api_key}"
-        print(f"--- Requesting Snapshot URL: {url}")
+        url = f"{base_url}?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={api_key}"
+        print(f"--- Requesting Alpha Vantage URL: {url}")
         try:
             response = requests.get(url, timeout=10)
-            print(f"--- Snapshot Response Status ({ticker}): {response.status_code}")
+            print(f"--- Alpha Vantage Response Status ({ticker}): {response.status_code}")
 
             if response.status_code == 200:
                 data = response.json()
-                if data.get('ticker'):
-                    overview_data.append(data['ticker'])
+                if 'Time Series (Daily)' in data:
+                    last_date = list(data['Time Series (Daily)'].keys())[0]
+                    daily_data = data['Time Series (Daily)'][last_date]
+                    overview_data.append({
+                        'ticker': ticker,
+                        'date': last_date,
+                        'open': daily_data['1. open'],
+                        'high': daily_data['2. high'],
+                        'low': daily_data['3. low'],
+                        'close': daily_data['4. close'],
+                    })
                 else:
-                    print(f"--- Warning: Unexpected snapshot structure for {ticker}")
+                    print(f"--- Warning: No time series data available for {ticker}")
             else:
-                print(f"--- Error fetching snapshot for {ticker}: Status {response.status_code}")
+                print(f"--- Error fetching data for {ticker}: Status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
-            print(f"--- Network error fetching snapshot for {ticker}: {e}")
+            print(f"--- Network error fetching data for {ticker}: {e}")
 
     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
+

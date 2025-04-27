@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY')
+ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY')
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
