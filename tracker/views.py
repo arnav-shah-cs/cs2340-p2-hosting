@@ -1,29 +1,26 @@
 from email.mime.image import MIMEImage
-
 from django.contrib.sites import requests
-from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.db.models import Sum
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Transaction, Budget, Goal
 from .forms import TransactionForm, BudgetForm
-from django.utils import timezone
 from django.db import IntegrityError
 from collections import defaultdict
 from decimal import Decimal
-from django.conf import settings
-from django.shortcuts import render
 from datetime import date
 import datetime
-import requests
 from .forms import GoalForm, ContributionForm
 from django.utils import timezone
 import matplotlib.pyplot as plt
 import io
-import base64
+import requests
+from django.conf import settings
+from django.shortcuts import render
 
 
 
@@ -533,37 +530,6 @@ def dashboard_view(request):
     }
     return render(request, 'tracker/dashboard.html', context)
 
-
-# def stock_market_overview(request):
-#     indices = ["SPY", "QQQ", "DIA"]
-#     overview_data = []
-#     api_key = settings.POLYGON_API_KEY
-#     base_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/"
-#
-#     for ticker in indices:
-#         url = f"{base_url}{ticker}?apiKey={api_key}"
-#         print(f"--- Requesting Snapshot URL: {url}")
-#         try:
-#             response = requests.get(url, timeout=10)
-#             print(f"--- Snapshot Response Status ({ticker}): {response.status_code}")
-#
-#             if response.status_code == 200:
-#                 data = response.json()
-#                 if data.get('ticker'):
-#                     overview_data.append(data['ticker'])
-#                 else:
-#                     print(f"--- Warning: Unexpected snapshot structure for {ticker}")
-#             else:
-#                 print(f"--- Error fetching snapshot for {ticker}: Status {response.status_code}")
-#
-#         except requests.exceptions.RequestException as e:
-#             print(f"--- Network error fetching snapshot for {ticker}: {e}")
-#
-#     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
-
-import requests
-from django.conf import settings
-from django.shortcuts import render
 
 def stock_market_overview(request):
     indices = ["SPY", "QQQ", "DIA", "IWM", "VTI", "ACWI", "VOO", "IVV", "AAPL", "GOOGL", "MSFT",]
