@@ -13,6 +13,9 @@ urlpatterns = [
     path('tips/', views.financial_tips_view, name='financial_tips'),
     path('edit/<int:pk>/', views.edit_transaction_view, name='edit_transaction'),
     path('delete/<int:pk>/', views.delete_transaction_view, name='delete_transaction'),
+    path('goals/add/', views.add_goal, name='add_goal'),
+    path('goals/<int:goal_id>/contribute/', views.add_contribution, name='add_contribution'),
+    path('stock-market/', views.stock_market_overview, name='stock_market_overview'),
 
     # --- budget URLs ---
     path('budgets/', views.budget_list_view, name='budget_list'),

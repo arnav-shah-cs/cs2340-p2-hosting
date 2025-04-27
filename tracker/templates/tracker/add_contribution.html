@@ -1,0 +1,24 @@
+{% extends 'tracker/base.html' %} {# Or your base template #}
+
+{% block title %}Add Contribution to {{ goal.name }}{% endblock %}
+
+{% block content %}
+<h1>Add Contribution to: {{ goal.name }}</h1>
+<p><strong>Target:</strong> ${{ goal.target_amount|floatformat:2 }}</p>
+<p><strong>Currently Saved:</strong> ${{ goal.current_amount|floatformat:2 }}</p>
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<form method="post" action="{% url 'tracker:add_contribution' goal.id %}">
+    {% csrf_token %}
+    {{ form.as_p }} {# Renders form fields as paragraphs #}
+    <button type="submit" class="btn btn-success">Add Contribution</button>
+    <a href="{% url 'tracker:dashboard' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

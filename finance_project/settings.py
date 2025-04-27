@@ -11,9 +11,18 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import dotenv
+import os
+
+from dotenv import load_dotenv
+
+#dotenv.load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY')
 
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

@@ -55,12 +55,45 @@
            <a href="{% url 'tracker:budget_create' %}">Create your first budget!</a>
         </p>
     {% endif %}
-    {# --- End Budget Progress Section --- #}
+
+
+   <section class="mt-4">
+    <h2>Your Financial Goals</h2>
+    <a href="{% url 'tracker:add_goal' %}" class="btn btn-primary mb-3">Add New Goal</a>
+
+    {% if goals %}
+        <div class="list-group">
+            {% for goal in goals %}
+                <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ goal.name }}</h5>
+                        <small>Target: ${{ goal.target_amount|floatformat:2 }}</small>
+                    </div>
+                    <p class="mb-1">
+                        Saved: <strong>${{ goal.current_amount|floatformat:2 }}</strong>
+                        {% if goal.target_amount > 0 %}
+                            (Remaining: ${{ goal.remaining_amount|floatformat:2 }})
+                        {% endif %}
+                    </p>
+                    {% if goal.target_amount > 0 %}
+                    <div class="progress" style="height: 20px;" title="{{ goal.progress_percent|floatformat:1 }}% Complete">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ goal.progress_percent }}%;" aria-valuenow="{{ goal.progress_percent|floatformat:2 }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ goal.progress_percent|floatformat:1 }}%
+                        </div>
+                    </div>
+                    {% endif %}
+                    <a href="{% url 'tracker:add_contribution' goal.id %}" class="btn btn-sm btn-outline-success mt-2">Add Contribution</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You haven't set any goals yet. <a href="{% url 'tracker:add_goal' %}">Add one now!</a></p>
+    {% endif %}
+</section>
 
 
     <hr style="margin: 30px 0;">
 
-    {# --- Keep Existing Transactions Table (optional) --- #}
     <h3>Recent Transactions</h3>
     {% if transactions %}
         <table>

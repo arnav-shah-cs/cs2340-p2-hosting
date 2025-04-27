@@ -56,3 +56,28 @@ class Budget(models.Model):
         month_str = self.month.strftime('%Y-%m')
         return f"{self.user.username} - {self.category} Budget ({month_str}): ${self.amount}"
 
+
+class Goal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='goals')
+    name = models.CharField(max_length=100, help_text="Name of the financial goal (e.g., New Car Fund)")
+    target_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="The target amount for the goal")
+    current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), help_text="The amount currently saved/contributed")
+    created_at = models.DateTimeField(auto_now_add=True)
+    # target_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+    @property
+    def progress_percent(self):
+        if self.target_amount is None or self.target_amount <= 0:
+            return 0
+        progress = (self.current_amount / self.target_amount) * 100
+        return min(progress, Decimal('100.00'))
+
+    @property
+    def remaining_amount(self):
+        if self.target_amount is None:
+            return None
+        remaining = self.target_amount - self.current_amount
+        return max(remaining, Decimal('0.00'))

@@ -1,16 +1,21 @@
+from django.contrib.sites import requests
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Transaction, Budget
+from .models import Transaction, Budget, Goal
 from .forms import TransactionForm, BudgetForm
 from django.utils import timezone
 from django.db import IntegrityError
 from collections import defaultdict
 from decimal import Decimal
+from django.conf import settings
+from django.shortcuts import render
+from datetime import date
 import datetime
-
+import requests
+from .forms import GoalForm, ContributionForm
 
 
 def register_view(request):
@@ -57,11 +62,56 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     transactions = Transaction.objects.filter(user=request.user)
+    goals = Goal.objects.filter(user=request.user).order_by('created_at')
     context = {
         'transactions': transactions,
         'username': request.user.username,
+        'goals': goals,
     }
     return render(request, 'tracker/dashboard.html', context)
+
+
+@login_required
+def add_goal(request):
+    if request.method == 'POST':
+        form = GoalForm(request.POST)
+        if form.is_valid():
+            goal = form.save(commit=False)
+            goal.user = request.user
+            goal.current_amount = Decimal('0.00')
+            goal.save()
+            messages.success(request, f"Goal '{goal.name}' created successfully!")
+            # --- Redirect to YOUR dashboard view ---
+            return redirect('tracker:dashboard') # Make sure 'dashboard' URL name points to dashboard_view
+        else:
+             messages.error(request, "Please correct the errors below.")
+    else:
+        form = GoalForm()
+    return render(request, 'tracker/add_goal.html', {'form': form})
+
+@login_required
+def add_contribution(request, goal_id):
+    goal = get_object_or_404(Goal, id=goal_id, user=request.user)
+    if request.method == 'POST':
+        form = ContributionForm(request.POST)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            if not isinstance(goal.current_amount, Decimal):
+                 goal.current_amount = Decimal(goal.current_amount)
+            goal.current_amount += amount
+            goal.save()
+            messages.success(request, f"Successfully added ${amount} to '{goal.name}'!")
+             # --- Redirect to YOUR dashboard view ---
+            return redirect('tracker:dashboard') # Make sure 'dashboard' URL name points to dashboard_view
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = ContributionForm()
+    context = {
+        'form': form,
+        'goal': goal
+    }
+    return render(request, 'tracker/add_contribution.html', context)
 
 @login_required
 def add_transaction_view(request):
@@ -240,3 +290,35 @@ def dashboard_view(request):
     }
     return render(request, 'tracker/dashboard.html', context)
 
+
+def stock_market_overview(request):
+    indices = ["SPY", "QQQ", "DIA"] # Key ETFs for overview
+    overview_data = []
+    api_key = settings.POLYGON_API_KEY
+    base_url = "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/"
+
+    for ticker in indices:
+        url = f"{base_url}{ticker}?apiKey={api_key}"
+        print(f"--- Requesting Snapshot URL: {url}")
+        try:
+            response = requests.get(url, timeout=10)
+            print(f"--- Snapshot Response Status ({ticker}): {response.status_code}")
+            # Add response text printing for debugging if needed
+            # print(f"--- Snapshot Response Text ({ticker}): {response.text[:200]}")
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ticker'): # Basic check for valid response structure
+                    overview_data.append(data['ticker']) # Add the 'ticker' part of the snapshot
+                else:
+                    print(f"--- Warning: Unexpected snapshot structure for {ticker}")
+            else:
+                print(f"--- Error fetching snapshot for {ticker}: Status {response.status_code}")
+                # Optionally add placeholder error data for the template
+
+        except requests.exceptions.RequestException as e:
+            print(f"--- Network error fetching snapshot for {ticker}: {e}")
+            # Optionally add placeholder error data
+
+    return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
+    # Adjust your template 'stock_market.html' to display snapshot data
