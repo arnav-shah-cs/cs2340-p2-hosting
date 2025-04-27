@@ -1,5 +1,8 @@
+from email.mime.image import MIMEImage
+
 from django.contrib.sites import requests
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
+from django.db.models import Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -18,7 +21,9 @@ import datetime
 import requests
 from .forms import GoalForm, ContributionForm
 from django.utils import timezone
-
+import matplotlib.pyplot as plt
+import io
+import base64
 
 
 
@@ -65,49 +70,216 @@ def logout_view(request):
 
 def send_upcoming_due_date_emails(request):
     user = request.user
+    important_dates = [
+        ("April 15", "Individual income tax returns due (Form 1040)"),
+        ("April 15", "First quarter estimated tax payments due"),
+        ("June 15", "Second quarter estimated tax payments due"),
+        ("September 15", "Third quarter estimated tax payments due"),
+        ("October 15", "Extended individual tax returns due"),
+        ("January 15", "Fourth quarter estimated tax payments due"),
+        ("April 15", "IRA contribution deadline for previous tax year"),
+        ("December 31", "401(k) contribution deadline"),
+        ("December 31", "Required Minimum Distributions (RMDs) due"),
+    ]
     upcoming_expenses = Transaction.objects.filter(
         user=user,
         is_recurring=True,
         recurring_due_date__gte=date.today()
     )
+
     if upcoming_expenses.exists():
-        message_lines = [
+        text_lines = [
             f"Hi {user.username},",
             "",
             "Here are your upcoming recurring expenses:"
         ]
+        html_expense_rows = ""
+
         for expense in upcoming_expenses:
-            message_lines.append(f"- {expense.category}: ${expense.amount:.2f} due on {expense.recurring_due_date}")
-        message_lines.append("")
+            text_lines.append(f"- {expense.category}: ${expense.amount:.2f} due on {expense.recurring_due_date}")
+            html_expense_rows += f"""
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{expense.category}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">${expense.amount:.2f}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{expense.recurring_due_date}</td>
+                </tr>
+            """
+        text_lines.append("\nAdditionally, here are some upcoming important financial dates:")
 
-        message_lines.append("Additionally, here are some upcoming financial due dates:")
-        message_lines.append("April 15: Individual income tax returns due (Form 1040)")
-        message_lines.append("April 15: First quarter estimated tax payments due")
-        message_lines.append("June 15: Second quarter estimated tax payments due")
-        message_lines.append("September 15: Third quarter estimated tax payments due")
-        message_lines.append("October 15: Extended individual tax returns due")
-        message_lines.append("January 15: Fourth quarter estimated tax payments due")
-        message_lines.append("April 15: IRA contribution deadline for previous tax year")
-        message_lines.append("December 31: 401(k) contribution deadline")
-        message_lines.append("December 31: Required Minimum Distributions (RMDs) due")
-        message_lines.append(" Remember to stay on top of your finances!")
-        message_lines.append("- Your Finance Tracker Team")
+        for date_str, description in important_dates:
+            text_lines.append(f"- {date_str}: {description}")
 
-        message_body = "\n".join(message_lines)
+        text_lines.append("\nStay on top of your finances! 💸\n- Your Finance Tracker Team")
 
-        # Send the email
-        send_mail(
-            'Upcoming Financial Due Dates 📅',
-            message_body,
-            'aravshahphotos@gmail.com',
-            [user.email],
-            fail_silently=False,
+        # Build the full HTML email
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #f6f9fc; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <h2 style="color: #333;">Hello, {user.username}!</h2>
+                <p style="color: #555;">Here’s a quick reminder of your upcoming recurring expenses:</p>
+
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background-color: #007bff; color: white;">
+                            <th style="padding: 10px;">Category</th>
+                            <th style="padding: 10px;">Amount</th>
+                            <th style="padding: 10px;">Due Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {html_expense_rows}
+                    </tbody>
+                </table>
+                
+                <p style="margin-top: 30px; color: #555;">Additionally, here are some important financial dates to keep in mind:</p>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background-color: #28a745; color: white;">
+                            <th style="padding: 10px;">Date</th>
+                            <th style="padding: 10px;">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(f"""
+                            <tr>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{date_str}</td>
+                                <td style="padding: 8px; border-bottom: 1px solid #ddd;">{description}</td>
+                            </tr>
+                        """ for date_str, description in important_dates)}
+                    </tbody>
+                </table>
+
+                <p style="margin-top: 20px; color: #333;">Stay on top of your finances! 💸</p>
+                <p style="font-size: 0.9em; color: #888;">- Your Finance Tracker Team</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_body = "\n".join(text_lines)
+
+        email = EmailMultiAlternatives(
+            subject='Upcoming Financial Due Dates and Recurring Payments!',
+            body=text_body,
+            from_email='aravshahphotos@gmail.com',
+            to=[user.email],
         )
+        email.attach_alternative(html_body, "text/html")
+        email.send()
+
         messages.success(request, 'Upcoming expenses email sent successfully! ✅')
     else:
         messages.info(request, 'No upcoming expenses found to email. ℹ️')
 
     return redirect('tracker:dashboard')
+
+
+def send_spending_summary_email(request):
+    user = request.user
+    transactions = Transaction.objects.filter(user=user)
+
+    total_income = transactions.filter(type='Income').aggregate(Sum('amount'))['amount__sum'] or 0
+    expenses = transactions.filter(type='Expense')
+
+    category_spending = expenses.values('category').annotate(total_spent=Sum('amount'))
+
+    text_lines = []
+    text_lines.append(f"Hello {user.username},")
+    text_lines.append("")
+    text_lines.append("Here’s your spending summary:")
+    text_lines.append(f"- Total Income: ${total_income:.2f}")
+    text_lines.append("")
+
+    for item in category_spending:
+        category = item['category']
+        spent = item['total_spent']
+        percent_of_income = (spent / total_income) * 100 if total_income > 0 else 0
+        text_lines.append(f"- {category}: Spent ${spent:.2f} ({percent_of_income:.1f}% of your income)")
+
+    text_content = "\n".join(text_lines)
+
+    categories = [item['category'] for item in category_spending]
+    amounts = [item['total_spent'] for item in category_spending]
+
+    chart_image = None
+    if categories and amounts:
+        plt.figure(figsize=(6, 6))
+        plt.pie(amounts, labels=categories, autopct='%1.1f%%', startangle=140)
+        plt.title('Spending by Category')
+        plt.tight_layout()
+
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        plt.close()
+        buffer.seek(0)
+        chart_image = buffer.read()
+
+    subject = 'Your Spending Summary'
+    from_email = 'your_email@example.com'
+    to = [user.email]
+
+    email = EmailMultiAlternatives(subject, text_content, from_email, to)
+
+    if chart_image:
+        img = MIMEImage(chart_image)
+        img.add_header('Content-ID', '<spending_chart>')
+        img.add_header('Content-Disposition', 'inline', filename='spending_chart.png')
+        email.attach(img)
+
+        html_content = f"""
+        <p>{text_content.replace('\n', '<br>')}</p>
+        <p><strong>Spending Breakdown:</strong></p>
+        <img src="cid:spending_chart" alt="Spending by Category">
+        """
+        email.attach_alternative(html_content, "text/html")
+    email.send()
+
+
+def send_spending_summary_email_view(request):
+    if request.method == 'POST':
+        send_spending_summary_email(request)
+        messages.success(request, "Spending summary email sent successfully!")
+    return redirect('tracker:dashboard')
+
+
+def check_and_send_budget_alerts(user):
+    today = datetime.date.today()
+    budgets = Budget.objects.filter(user=user)
+
+    for budget in budgets:
+        category = budget.category
+        budget_limit = budget.amount
+        budget_month = budget.month
+
+        if budget_month.year == today.year and budget_month.month == today.month:
+            total_spent = Transaction.objects.filter(
+                user=user,
+                type='Expense',
+                category=category,
+                date__year=today.year,
+                date__month=today.month
+            ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+            if budget_limit > 0:
+                percent_used = (total_spent / budget_limit) * 100
+            else:
+                percent_used = 0
+
+            if percent_used >= 80:
+                send_mail(
+                    subject='Budget Alert: Approaching Limit!',
+                    message=(
+                        f"Hi {user.username},\n\n"
+                        f"You've spent ${total_spent:.2f} of your ${budget_limit:.2f} budget for {category} "
+                        f"({percent_used:.1f}% used).\n\n"
+                        "Keep an eye on your spending!"
+                    ),
+                    from_email='aravshahphotos@gmail.com',
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+
 
 @login_required
 def dashboard_view(request):
@@ -245,6 +417,7 @@ def financial_tips_view(request):
 
 @login_required
 def budget_list_view(request):
+    check_and_send_budget_alerts(request.user)
     budgets = Budget.objects.filter(user=request.user).order_by('-month', 'category')
     return render(request, 'tracker/budget_list.html', {'budgets': budgets})
 

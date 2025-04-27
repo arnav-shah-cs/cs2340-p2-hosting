@@ -126,6 +126,14 @@
     <button type="submit" class="btn btn-warning mt-2">Email Me Upcoming Expenses</button>
 </form>
 
+
+    <form action="{% url 'tracker:send_spending_summary_email' %}" method="post" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+        Send me a Summary of my Spending
+    </button>
+</form>
+
     <hr style="margin: 30px 0;">
 
     <h3>Recent Transactions</h3>
