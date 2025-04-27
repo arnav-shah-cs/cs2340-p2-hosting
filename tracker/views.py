@@ -1,4 +1,5 @@
 from django.contrib.sites import requests
+from django.core.mail import send_mail
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -16,6 +17,9 @@ from datetime import date
 import datetime
 import requests
 from .forms import GoalForm, ContributionForm
+from django.utils import timezone
+
+
 
 
 def register_view(request):
@@ -59,15 +63,75 @@ def logout_view(request):
     return redirect('tracker:login')
 
 
+def send_upcoming_due_date_emails(request):
+    user = request.user
+    upcoming_expenses = Transaction.objects.filter(
+        user=user,
+        is_recurring=True,
+        recurring_due_date__gte=date.today()
+    )
+    if upcoming_expenses.exists():
+        message_lines = [
+            f"Hi {user.username},",
+            "",
+            "Here are your upcoming recurring expenses:"
+        ]
+        for expense in upcoming_expenses:
+            message_lines.append(f"- {expense.category}: ${expense.amount:.2f} due on {expense.recurring_due_date}")
+        message_lines.append("")
+
+        message_lines.append("Additionally, here are some upcoming financial due dates:")
+        message_lines.append("April 15: Individual income tax returns due (Form 1040)")
+        message_lines.append("April 15: First quarter estimated tax payments due")
+        message_lines.append("June 15: Second quarter estimated tax payments due")
+        message_lines.append("September 15: Third quarter estimated tax payments due")
+        message_lines.append("October 15: Extended individual tax returns due")
+        message_lines.append("January 15: Fourth quarter estimated tax payments due")
+        message_lines.append("April 15: IRA contribution deadline for previous tax year")
+        message_lines.append("December 31: 401(k) contribution deadline")
+        message_lines.append("December 31: Required Minimum Distributions (RMDs) due")
+        message_lines.append(" Remember to stay on top of your finances!")
+        message_lines.append("- Your Finance Tracker Team")
+
+        message_body = "\n".join(message_lines)
+
+        # Send the email
+        send_mail(
+            'Upcoming Financial Due Dates 📅',
+            message_body,
+            'aravshahphotos@gmail.com',
+            [user.email],
+            fail_silently=False,
+        )
+        messages.success(request, 'Upcoming expenses email sent successfully! ✅')
+    else:
+        messages.info(request, 'No upcoming expenses found to email. ℹ️')
+
+    return redirect('tracker:dashboard')
+
 @login_required
 def dashboard_view(request):
+    print("dashboard hello")
     transactions = Transaction.objects.filter(user=request.user)
     goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
+
+    today = timezone.now().date()
+    upcoming_recurring_expenses = Transaction.objects.filter(
+        user=request.user,
+        #type='Expense',
+        is_recurring=True,
+        recurring_due_date__gte=today
+    ).order_by('recurring_due_date')
+
     context = {
         'transactions': transactions,
         'username': request.user.username,
         'goals': goals_queryset,
+        'upcoming_recurring_expenses': upcoming_recurring_expenses,
     }
+    print(f"Upcoming recurring expenses: {upcoming_recurring_expenses.count()}")
+    for exp in upcoming_recurring_expenses:
+        print(f"{exp.description} due on {exp.recurring_due_date}")
     return render(request, 'tracker/dashboard.html', context)
 
 
@@ -115,6 +179,7 @@ def add_contribution(request, goal_id):
 
 @login_required
 def add_transaction_view(request):
+    print("hello")
     if request.method == 'POST':
         form = TransactionForm(request.POST)
         if form.is_valid():

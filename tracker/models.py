@@ -18,6 +18,9 @@ class Transaction(models.Model):
     category = models.CharField(max_length=50)
     description = models.CharField(max_length=200, blank=True)
 
+    is_recurring = models.BooleanField(default=False)
+    recurring_due_date = models.DateField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -81,3 +84,4 @@ class Goal(models.Model):
             return None
         remaining = self.target_amount - self.current_amount
         return max(remaining, Decimal('0.00'))
+

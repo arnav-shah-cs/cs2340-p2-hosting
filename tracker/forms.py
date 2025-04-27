@@ -7,9 +7,10 @@ from .models import Transaction, Budget, Goal
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
-        fields = ['type', 'amount', 'date', 'category', 'description']
+        fields = ['type', 'amount', 'date', 'category', 'description', 'is_recurring', 'recurring_due_date']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
+            'recurring_due_date': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def clean_amount(self):
@@ -90,3 +91,4 @@ class ContributionForm(forms.Form):
         amount = self.cleaned_data.get('amount')
         # Example: Check against available funds if you track that elsewhere
         return amount
+

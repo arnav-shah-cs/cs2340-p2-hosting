@@ -1,6 +1,6 @@
-<!-- tracker/templates/tracker/dashboard.html -->
+
 {% extends 'tracker/base.html' %}
-{% load static %} <!-- Optional: if using static files for CSS -->
+{% load static %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -109,6 +109,22 @@
      <p style="color: blue; font-weight: bold;">[TEMPLATE DEBUG] End of Goals Section.</p> {# Marker 6 #}
 </section>
 
+
+    <h2>Upcoming Recurring Expenses</h2>
+{% if upcoming_recurring_expenses %}
+  <ul>
+    {% for transaction in upcoming_recurring_expenses %}
+      <li>{{ transaction.category }}: ${{ transaction.amount }} due on {{ transaction.recurring_due_date }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No upcoming recurring expenses.</p>
+{% endif %}
+
+    <form method="post" action="{% url 'tracker:send_upcoming_due_date_emails' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-warning mt-2">Email Me Upcoming Expenses</button>
+</form>
 
     <hr style="margin: 30px 0;">
 

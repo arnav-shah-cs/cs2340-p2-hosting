@@ -124,5 +124,12 @@ LOGIN_URL = 'tracker:login'
 LOGIN_REDIRECT_URL = 'tracker:dashboard'
 LOGOUT_REDIRECT_URL = 'tracker:login'
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'aravshahphotos@gmail.com'  # Your Gmail address
+EMAIL_HOST_PASSWORD = 'cupu qmra fule thab'  # Your Gmail App Password (NOT your main password)
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'aravshahphotos@gmail.com'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
