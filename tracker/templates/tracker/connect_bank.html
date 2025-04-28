@@ -1,0 +1,52 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Connect Your Bank{% endblock %}
+
+{% block content %}
+<h2>Connect Your Bank Account</h2>
+
+<button id="link-button" class="btn btn-primary">Connect Bank</button>
+
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script>
+    var linkHandler = Plaid.create({
+        token: "{{ link_token }}",
+        onSuccess: function(public_token, metadata) {
+            console.log("Public Token:", public_token);
+            console.log("Metadata:", metadata);
+
+            // Now send the public_token to your server
+            fetch("{% url 'tracker:plaid_exchange_public_token' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: new URLSearchParams({
+                    "public_token": public_token
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Server response:", data);
+                alert("Bank account connected successfully!");
+                window.location.href = "{% url 'tracker:dashboard' %}";  // Redirect as needed
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Something went wrong.");
+            });
+        },
+        onExit: function(err, metadata) {
+            if (err != null) {
+                console.error(err);
+            }
+            console.log(metadata);
+        }
+    });
+
+    document.getElementById("link-button").onclick = function() {
+        linkHandler.open();
+    };
+</script>
+{% endblock %}

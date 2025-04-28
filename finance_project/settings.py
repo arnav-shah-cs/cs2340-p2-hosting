@@ -23,6 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY')
 ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY')
 
+
+PLAID_API_KEY = os.environ.get('PLAID_API_KEY')
+PLAID_CLIENT_ID = os.environ.get('PLAID_CLIENT_ID')
+
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
@@ -124,6 +128,10 @@ STATIC_URL = 'static/'
 LOGIN_URL = 'tracker:login'
 LOGIN_REDIRECT_URL = 'tracker:dashboard'
 LOGOUT_REDIRECT_URL = 'tracker:login'
+
+PLAID_CLIENT_ID = '680fcc9523942c0023264def'
+
+PLAID_ENV = 'sandbox'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

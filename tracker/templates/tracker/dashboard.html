@@ -132,7 +132,13 @@
     <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
         Send me a Summary of my Spending
     </button>
-</form>
+    </form>
+
+    <section class="mt-4">
+    <h2>Connect Your Bank Account</h2>
+
+    <button id="link-button" class="btn btn-primary">Connect Bank Account</button>
+    </section>
 
     <hr style="margin: 30px 0;">
 
@@ -172,5 +178,41 @@
         <p>You haven't added any transactions yet.</p>
     {% endif %}
     <p style="margin-top: 20px;"><a href="{% url 'tracker:add_transaction' %}">Add a New Transaction</a></p>
+
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script>
+    const linkToken = "{{ link_token }}";  // Make sure your view sends 'link_token' to this template
+
+    const handler = Plaid.create({
+        token: linkToken,
+        onSuccess: function(public_token, metadata) {
+            // Send the public_token to your backend to exchange for an access_token
+            fetch("{% url 'tracker:plaid_exchange_public_token' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: JSON.stringify({ public_token: public_token }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Access token exchange success:", data);
+                alert("Bank account connected successfully!");
+            })
+            .catch(error => {
+                console.error("Error exchanging token:", error);
+            });
+        },
+        onExit: function(err, metadata) {
+            console.log("Plaid Link exited", err, metadata);
+        }
+    });
+
+    document.getElementById('link-button').addEventListener('click', function() {
+        handler.open();
+    });
+</script>
+
 
 {% endblock %}

@@ -7,6 +7,16 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from plaid.api import plaid_api
+from plaid.model.country_code import CountryCode
+from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.link_token_create_request import LinkTokenCreateRequest
+from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
+from plaid.model.products import Products
+from plaid.model.transactions_get_request import TransactionsGetRequest
+from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
+
+from finance_project.settings import PLAID_API_KEY
 from .models import Transaction, Budget, Goal
 from .forms import TransactionForm, BudgetForm
 from django.db import IntegrityError
@@ -21,6 +31,9 @@ import io
 import requests
 from django.conf import settings
 from django.shortcuts import render
+from plaid import ApiClient, Configuration, Environment
+from plaid.api.plaid_api import PlaidApi
+from django.http import JsonResponse
 
 
 
@@ -278,28 +291,95 @@ def check_and_send_budget_alerts(user):
                 )
 
 
-# @login_required
-# def dashboard_view(request):
-#     print("dashboard hello")
-#     transactions = Transaction.objects.filter(user=request.user)
-#     goals_queryset = Goal.objects.filter(user=request.user).order_by('created_at')
-#
-#     today = timezone.now().date()
-#     upcoming_recurring_expenses = Transaction.objects.filter(
-#         user=request.user,
-#         #type='Expense',
-#         is_recurring=True,
-#         recurring_due_date__gte=today
-#     ).order_by('recurring_due_date')
-#
-#     context = {
-#         'transactions': transactions,
-#         'username': request.user.username,
-#         'goals': goals_queryset,
-#         'upcoming_recurring_expenses': upcoming_recurring_expenses,
-#     }
-#     return render(request, 'tracker/dashboard.html', context)
+def plaid_link_view(request):
+    configuration = Configuration(
+        host = Environment.Sandbox,
+        api_key={
+            "clientId": settings.PLAID_CLIENT_ID,
+            "secret": settings.PLAID_API_KEY,
+        },
+    )
+    api_client = ApiClient(configuration)
+    client = PlaidApi(api_client)
 
+    request_data = LinkTokenCreateRequest(
+        user={"client_user_id": str(request.user.id)},   # Always a string
+        client_name="My Finance Tracker",                # Friendly app name
+        products=[Products("transactions")],
+        country_codes=[CountryCode('US')],
+        language="en",
+    )
+
+    link_token_create_response = client.link_token_create(request_data)
+    link_token = link_token_create_response.link_token
+
+    return render(request, "plaid_link.html", {"link_token": link_token})
+
+
+def plaid_exchange_public_token(request):
+    if request.method == "POST":
+        public_token = request.POST.get('public_token')
+
+        configuration = Configuration(
+            host=settings.PLAID_ENV,
+            api_key={
+                "clientId": settings.PLAID_CLIENT_ID,
+                "secret": settings.PLAID_SECRET,
+            },
+        )
+        api_client = ApiClient(configuration)
+        client = PlaidApi(api_client)
+
+        exchange_request = ItemPublicTokenExchangeRequest(
+            public_token=public_token
+        )
+        exchange_response = client.item_public_token_exchange(exchange_request)
+
+        access_token = exchange_response.access_token
+
+        return JsonResponse({"message": "Success"})
+    else:
+        return JsonResponse({"error": "POST request required."}, status=400)
+
+
+
+def plaid_transactions_view(request):
+    access_token = request.user.profile.plaid_access_token
+
+    if not access_token:
+        return render(request, 'tracker/plaid_error.html', {'error': 'No access token found. Connect your bank account first.'})
+
+    configuration = Configuration(
+        host=settings.PLAID_ENV,
+        api_key={
+            "clientId": settings.PLAID_CLIENT_ID,
+            "secret": settings.PLAID_SECRET,
+        },
+    )
+    api_client = ApiClient(configuration)
+    client = PlaidApi(api_client)
+
+    end_date = datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=30)
+
+    try:
+        request_data = TransactionsGetRequest(
+            access_token=access_token,
+            start_date=start_date,
+            end_date=end_date,
+            options=TransactionsGetRequestOptions(
+                count=10,
+                offset=0
+            )
+        )
+        response = client.transactions_get(request_data)
+        transactions = response['transactions']
+
+    except Exception as e:
+        print(f"Error fetching transactions: {e}")
+        transactions = []
+
+    return render(request, 'tracker/plaid_transactions.html', {'transactions': transactions})
 
 
 @login_required
@@ -519,6 +599,28 @@ def dashboard_view(request):
             'has_budget': category in budget_map
         })
 
+    configuration = Configuration(
+        host= Environment.Sandbox,
+        api_key={
+            "clientId": settings.PLAID_CLIENT_ID,
+            "secret": settings.PLAID_API_KEY,
+        },
+    )
+    api_client = ApiClient(configuration)
+    client = plaid_api.PlaidApi(api_client)
+
+    link_token_request = LinkTokenCreateRequest(
+        products=[Products('transactions')],
+        client_name="Your App Name",
+        country_codes=[CountryCode('US')],
+        language='en',
+        user=LinkTokenCreateRequestUser(
+            client_user_id=str(request.user.id)
+        ),
+    )
+
+    link_token_response = client.link_token_create(link_token_request)
+    link_token = link_token_response['link_token']
 
     context = {
         'transactions': transactions,
@@ -526,7 +628,8 @@ def dashboard_view(request):
         'budget_progress': budget_progress,
         'goals': goals_queryset,
         'upcoming_recurring_expenses': upcoming_recurring_expenses,
-        'current_month_str': start_of_current_month.strftime('%B %Y')
+        'current_month_str': start_of_current_month.strftime('%B %Y'),
+        'link_token': link_token
     }
     return render(request, 'tracker/dashboard.html', context)
 

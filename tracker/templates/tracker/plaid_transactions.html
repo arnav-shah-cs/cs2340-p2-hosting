@@ -1,0 +1,33 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Recent Transactions{% endblock %}
+
+{% block content %}
+<h2>Recent Transactions</h2>
+
+{% if transactions %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Amount</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in transactions %}
+                <tr>
+                    <td>{{ txn.date }}</td>
+                    <td>{{ txn.name }}</td>
+                    <td>${{ txn.amount }}</td>
+                    <td>{{ txn.category.0 }}</td>  {# Sometimes multiple categories, take the first one #}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No transactions available.</p>
+{% endif %}
+
+{% endblock %}
