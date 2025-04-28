@@ -68,11 +68,11 @@ ROOT_URLCONF = 'finance_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -136,8 +136,8 @@ PLAID_ENV = 'sandbox'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'aravshahphotos@gmail.com'  # Your Gmail address
-EMAIL_HOST_PASSWORD = 'cupu qmra fule thab'  # Your Gmail App Password (NOT your main password)
+EMAIL_HOST_USER = 'aravshahphotos@gmail.com'  # gmail address
+EMAIL_HOST_PASSWORD = 'cupu qmra fule thab'  # gmail app password (not main password)
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'aravshahphotos@gmail.com'
 

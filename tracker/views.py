@@ -1,5 +1,6 @@
 import json
 from email.mime.image import MIMEImage
+from .forms import GoalForm, CustomUserCreationForm
 from django.contrib.sites import requests
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.db.models import Sum
@@ -40,16 +41,18 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 
 def register_view(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        # use CustomUserCreationForm
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
             messages.success(request, "Registration successful!")
             return redirect('tracker:dashboard')
         else:
+            # errors now include email field issues if any
             messages.error(request, "Registration failed. Please correct the errors below.")
-    else:
-        form = UserCreationForm()
+    else: # GET request
+        form = CustomUserCreationForm()
     return render(request, 'tracker/register.html', {'form': form})
 
 def login_view(request):
@@ -683,7 +686,6 @@ def stock_market_overview(request):
 
     for ticker in indices:
         url = f"{base_url}?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={api_key}"
-        #print(f"--- Requesting Alpha Vantage URL: {url}")
         try:
             response = requests.get(url, timeout=10)
             if response.status_code == 200:
@@ -701,14 +703,14 @@ def stock_market_overview(request):
                     })
                 else:
                     return
-                    #print(f"--- Warning: No time series data available for {ticker}")
+                    #print(f"--- warning: No time series data available for {ticker}")
             else:
                 return
-                #print(f"--- Error fetching data for {ticker}: Status {response.status_code}")
+                #print(f"--- error fetching data for {ticker}: Status {response.status_code}")
 
         except requests.exceptions.RequestException as e:
             return
-            # print(f"--- Network error fetching data for {ticker}: {e}")
+            # print(f"--- network error fetching data for {ticker}: {e}")
 
     return render(request, 'tracker/stock_market.html', {'overview_data': overview_data})
 
