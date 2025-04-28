@@ -23,7 +23,7 @@ urlpatterns = [
     path('send-upcoming-expenses-email/', views.send_upcoming_due_date_emails, name='send_upcoming_due_date_emails'),
     path('send-spending-summary/', views.send_spending_summary_email_view, name='send_spending_summary_email'),
     path('plaid-link/', views.plaid_link_view, name='plaid_link'),
-    path('plaid-exchange/', views.plaid_exchange_public_token, name='plaid_exchange_public_token'),
+    path('plaid-exchange/', views.exchange_public_token, name='plaid_exchange_public_token'),
 
     path('plaid-transactions/', views.plaid_transactions_view, name='plaid_transactions'),
 

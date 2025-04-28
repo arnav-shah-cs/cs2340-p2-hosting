@@ -1,3 +1,4 @@
+import json
 from email.mime.image import MIMEImage
 from django.contrib.sites import requests
 from django.core.mail import send_mail, EmailMultiAlternatives
@@ -7,6 +8,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from plaid.api import plaid_api
 from plaid.model.country_code import CountryCode
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -15,9 +17,7 @@ from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUse
 from plaid.model.products import Products
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
-
-from finance_project.settings import PLAID_API_KEY
-from .models import Transaction, Budget, Goal
+from .models import Transaction, Budget, Goal, PlaidItem
 from .forms import TransactionForm, BudgetForm
 from django.db import IntegrityError
 from collections import defaultdict
@@ -34,6 +34,7 @@ from django.shortcuts import render
 from plaid import ApiClient, Configuration, Environment
 from plaid.api.plaid_api import PlaidApi
 from django.http import JsonResponse
+from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 
 
 
@@ -121,7 +122,6 @@ def send_upcoming_due_date_emails(request):
 
         text_lines.append("\nStay on top of your finances! 💸\n- Your Finance Tracker Team")
 
-        # Build the full HTML email
         html_body = f"""
         <html>
         <body style="font-family: Arial, sans-serif; background-color: #f6f9fc; padding: 20px;">
@@ -316,30 +316,39 @@ def plaid_link_view(request):
     return render(request, "plaid_link.html", {"link_token": link_token})
 
 
-def plaid_exchange_public_token(request):
+@csrf_exempt
+def exchange_public_token(request):
     if request.method == "POST":
-        public_token = request.POST.get('public_token')
-
+        data = json.loads(request.body.decode('utf-8'))
+        public_token = data.get('public_token')
         configuration = Configuration(
-            host=settings.PLAID_ENV,
+            host= Environment.Sandbox,
             api_key={
                 "clientId": settings.PLAID_CLIENT_ID,
-                "secret": settings.PLAID_SECRET,
+                "secret": settings.PLAID_API_KEY,
             },
         )
         api_client = ApiClient(configuration)
-        client = PlaidApi(api_client)
+        client = plaid_api.PlaidApi(api_client)
+
+        exchange_response = client.item_public_token_exchange({'public_token': public_token})
+
+        access_token = exchange_response['access_token']
+        item_id = exchange_response['item_id']
 
         exchange_request = ItemPublicTokenExchangeRequest(
             public_token=public_token
         )
         exchange_response = client.item_public_token_exchange(exchange_request)
+        access_token = exchange_response['access_token']
+        item_id = exchange_response['item_id']
 
-        access_token = exchange_response.access_token
+        plaid_item, created = PlaidItem.objects.update_or_create(
+            user=request.user,
+            defaults={'access_token': access_token, 'item_id': item_id}
+        )
 
-        return JsonResponse({"message": "Success"})
-    else:
-        return JsonResponse({"error": "POST request required."}, status=400)
+        return redirect('dashboard')
 
 
 
@@ -424,7 +433,6 @@ def add_contribution(request, goal_id):
 
 @login_required
 def add_transaction_view(request):
-    print("hello")
     if request.method == 'POST':
         form = TransactionForm(request.POST)
         if form.is_valid():
@@ -622,6 +630,38 @@ def dashboard_view(request):
     link_token_response = client.link_token_create(link_token_request)
     link_token = link_token_response['link_token']
 
+    plaid_accounts = []
+
+
+    try:
+        plaid_item = PlaidItem.objects.get(user=request.user)
+
+        configuration = Configuration(
+            host= Environment.Sandbox,
+            api_key={
+                "clientId": settings.PLAID_CLIENT_ID,
+                "secret": settings.PLAID_API_KEY,
+            },
+        )
+        api_client = ApiClient(configuration)
+        client = plaid_api.PlaidApi(api_client)
+
+        accounts_response = client.accounts_get({'access_token': plaid_item.access_token})
+
+        for account in accounts_response['accounts']:
+            plaid_accounts.append({
+                'name': account['name'],
+                'official_name': account.get('official_name', ''),
+                'type': account['type'],
+                'subtype': account['subtype'],
+                'balance': account['balances']['available'],
+                'currency': account['balances'].get('iso_currency_code', 'USD'),
+            })
+    except PlaidItem.DoesNotExist:
+        plaid_accounts = []
+    except Exception as e:
+        print("--- Error fetching Plaid accounts ---", e)
+
     context = {
         'transactions': transactions,
         'username': request.user.username,
@@ -629,7 +669,8 @@ def dashboard_view(request):
         'goals': goals_queryset,
         'upcoming_recurring_expenses': upcoming_recurring_expenses,
         'current_month_str': start_of_current_month.strftime('%B %Y'),
-        'link_token': link_token
+        'link_token': link_token,
+        'plaid_accounts': plaid_accounts,
     }
     return render(request, 'tracker/dashboard.html', context)
 
